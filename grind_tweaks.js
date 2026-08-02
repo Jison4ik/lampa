@@ -1,12 +1,6 @@
 (function () {
     'use strict';
 
-    var GrindTweaks = {
-        name: 'Grind Tweaks',
-        version: '1.0.0',
-        component_name: 'grind_tweaks_settings'
-    };
-
     // Добавляем переводы
     Lampa.Lang.add({
         grind_tweaks: {
@@ -17,18 +11,21 @@
         }
     });
 
-    // Инициализация плагина
+    var GrindTweaks = {
+        name: 'Grind Tweaks',
+        version: '1.0.0',
+        component_name: 'grind_tweaks_settings'
+    };
+
     function init() {
         console.log('[Grind Tweaks] Начало инициализации');
 
-        // Создаем компонент настроек
         Lampa.SettingsApi.addComponent({
             component: GrindTweaks.component_name,
             name: Lampa.Lang.translate('grind_tweaks'),
             icon: '<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><rect x="64" y="64" width="384" height="384" rx="48" fill="none" stroke="white" stroke-width="32"/><rect x="176" y="176" width="160" height="160" rx="32" fill="white"/></svg>'
         });
 
-        // Настройка: включить/выключить кастомный фон
         Lampa.SettingsApi.addParam({
             component: GrindTweaks.component_name,
             param: {
@@ -49,7 +46,6 @@
             }
         });
 
-        // Настройка: выбор источника изображения (URL или файл)
         Lampa.SettingsApi.addParam({
             component: GrindTweaks.component_name,
             param: {
@@ -72,7 +68,6 @@
             }
         });
 
-        // Настройка: URL изображения
         Lampa.SettingsApi.addParam({
             component: GrindTweaks.component_name,
             param: {
@@ -82,7 +77,7 @@
             },
             field: {
                 name: 'URL изображения',
-                description: 'Введите прямую ссылку на изображение (jpg, png, webp)',
+                description: 'Введите прямую ссылку на изображение',
                 placeholder: 'https://example.com/image.jpg'
             },
             onChange: function (value) {
@@ -93,7 +88,6 @@
             }
         });
 
-        // Настройка: выбор файла из системы
         Lampa.SettingsApi.addParam({
             component: GrindTweaks.component_name,
             param: {
@@ -102,12 +96,11 @@
             },
             field: {
                 name: 'Выбрать файл из системы',
-                description: 'Нажмите для выбора изображения с устройства'
+                description: 'Нажмите для выбора изображения'
             },
             onChange: selectImageFile
         });
 
-        // Настройка: режим отображения
         Lampa.SettingsApi.addParam({
             component: GrindTweaks.component_name,
             param: {
@@ -132,7 +125,6 @@
             }
         });
 
-        // Настройка: затемнение
         Lampa.SettingsApi.addParam({
             component: GrindTweaks.component_name,
             param: {
@@ -158,7 +150,6 @@
             }
         });
 
-        // Настройка: размытие
         Lampa.SettingsApi.addParam({
             component: GrindTweaks.component_name,
             param: {
@@ -175,7 +166,7 @@
             },
             field: {
                 name: 'Размытие фона',
-                description: 'Применяет blur эффект к изображению'
+                description: 'Применяет blur эффект'
             },
             onChange: function (value) {
                 if (Lampa.Storage.field('grind_custom_bg_enabled')) {
@@ -184,7 +175,6 @@
             }
         });
 
-        // Настройка: предпросмотр
         Lampa.SettingsApi.addParam({
             component: GrindTweaks.component_name,
             param: {
@@ -198,15 +188,13 @@
             onChange: previewBackground
         });
 
-        // Применяем фон при старте, если включено
         if (Lampa.Storage.field('grind_custom_bg_enabled')) {
             setTimeout(applyCustomBackground, 1000);
         }
 
-        console.log('[Grind Tweaks] Плагин инициализирован, версия:', GrindTweaks.version);
+        console.log('[Grind Tweaks] Инициализирован, версия:', GrindTweaks.version);
     }
 
-    // Функция выбора файла из системы
     function selectImageFile() {
         try {
             var input = document.createElement('input');
@@ -237,7 +225,6 @@
         }
     }
 
-    // Функция применения кастомного фона
     function applyCustomBackground() {
         try {
             var sourceType = Lampa.Storage.field('grind_bg_source_type') || 'url';
@@ -246,13 +233,13 @@
             if (sourceType === 'url') {
                 imageUrl = Lampa.Storage.field('grind_bg_url') || '';
                 if (!imageUrl) {
-                    console.log('[Grind Tweaks] URL изображения не задан');
+                    console.log('[Grind Tweaks] URL не задан');
                     return;
                 }
             } else if (sourceType === 'file') {
                 imageUrl = Lampa.Storage.get('grind_bg_file_data', '');
                 if (!imageUrl) {
-                    console.log('[Grind Tweaks] Файл изображения не выбран');
+                    console.log('[Grind Tweaks] Файл не выбран');
                     return;
                 }
             }
@@ -261,7 +248,6 @@
             var overlay = Lampa.Storage.field('grind_bg_overlay') || '0.4';
             var blur = Lampa.Storage.field('grind_bg_blur') || '5';
 
-            // Создаем CSS для кастомного фона
             var bgSize = 'cover';
             var bgPosition = 'center';
             var bgRepeat = 'no-repeat';
@@ -272,7 +258,6 @@
                 bgSize = '100% 100%';
             } else if (mode === 'center') {
                 bgSize = 'auto';
-                bgPosition = 'center';
             }
 
             var cssText = '<style id="grind-custom-bg-style">' +
@@ -293,34 +278,30 @@
             $('#grind-custom-bg-style').remove();
             $('head').append(cssText);
 
-            // Запускаем отслеживание
             if (!window.grindTweaksWatcher) {
                 window.grindTweaksWatcher = true;
                 watchCardHover();
             }
 
-            console.log('[Grind Tweaks] Кастомный фон применен');
+            console.log('[Grind Tweaks] Фон применен');
         } catch (e) {
-            console.error('[Grind Tweaks] Ошибка применения фона:', e);
+            console.error('[Grind Tweaks] Ошибка применения:', e);
         }
     }
 
-    // Функция удаления кастомного фона
     function removeCustomBackground() {
         $('#grind-custom-bg-style').remove();
         $('body').removeClass('grind-card-hovered');
         window.grindTweaksWatcher = false;
-        console.log('[Grind Tweaks] Кастомный фон удален');
+        console.log('[Grind Tweaks] Фон удален');
     }
 
-    // Отслеживание наведения на карточки
     function watchCardHover() {
         setInterval(function () {
             if (!Lampa.Storage.field('grind_custom_bg_enabled') || !window.grindTweaksWatcher) {
                 return;
             }
 
-            // Проверяем, есть ли карточки с фокусом
             var hasHoveredCard = $('.card.focus').length > 0 || 
                                  $('.card.hover').length > 0 || 
                                  $('.card--focus').length > 0;
@@ -333,7 +314,6 @@
         }, 100);
     }
 
-    // Функция предпросмотра
     function previewBackground() {
         try {
             var sourceType = Lampa.Storage.field('grind_bg_source_type') || 'url';
@@ -405,7 +385,6 @@
         }
     }
 
-    // Ожидаем готовности Lampa
     if (window.appready) {
         init();
     } else {
