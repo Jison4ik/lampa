@@ -1,41 +1,40 @@
 (function(){
 'use strict';
 
-function startPlugin(){
-    console.log('[Grind Tweaks] Плагин запущен');
+console.log('[Grind] Плагин загружается...');
+
+function init(){
+    console.log('[Grind] Инициализация');
     
-    Lampa.SettingsApi.addParam({
-        component:'interface',
-        param:{
-            name:'grind_test',
-            type:'trigger',
-            default:false
-        },
-        field:{
-            name:'Grind Tweaks Test',
-            description:'Тестовая настройка плагина'
-        },
-        onChange:function(value){
-            console.log('[Grind Tweaks] Значение изменено:', value);
-            if(value){
-                console.log('[Grind Tweaks] ВКЛЮЧЕНО');
-            }else{
-                console.log('[Grind Tweaks] ВЫКЛЮЧЕНО');
+    try{
+        Lampa.SettingsApi.addParam({
+            component:'interface',
+            param:{
+                name:'grind_bg',
+                type:'trigger',
+                default:false
+            },
+            field:{
+                name:'Custom Background',
+                description:'Test setting'
+            },
+            onChange:function(v){
+                console.log('[Grind] Changed:', v);
             }
-        }
-    });
-    
-    console.log('[Grind Tweaks] Настройка добавлена');
+        });
+        
+        console.log('[Grind] OK');
+    }catch(e){
+        console.error('[Grind] Error:', e.message);
+    }
 }
 
-if(window.appready){
-    startPlugin();
-}else{
-    Lampa.Listener.follow('app',function(e){
-        if(e.type=='ready'){
-            startPlugin();
-        }
-    });
-}
+setTimeout(function(){
+    if(window.Lampa && Lampa.SettingsApi){
+        init();
+    }else{
+        console.error('[Grind] Lampa not ready');
+    }
+}, 2000);
 
 })();
