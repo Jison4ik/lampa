@@ -7,13 +7,25 @@
         component_name: 'grind_tweaks_settings'
     };
 
+    // Добавляем переводы
+    Lampa.Lang.add({
+        grind_tweaks: {
+            ru: 'Grind Tweaks',
+            en: 'Grind Tweaks',
+            uk: 'Grind Tweaks',
+            be: 'Grind Tweaks'
+        }
+    });
+
     // Инициализация плагина
     function init() {
+        console.log('[Grind Tweaks] Начало инициализации');
+
         // Создаем компонент настроек
         Lampa.SettingsApi.addComponent({
             component: GrindTweaks.component_name,
-            name: 'Grind Tweaks',
-            icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 8H21M8 3V21" stroke="currentColor" stroke-width="2"/></svg>'
+            name: Lampa.Lang.translate('grind_tweaks'),
+            icon: '<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><rect x="64" y="64" width="384" height="384" rx="48" fill="none" stroke="white" stroke-width="32"/><rect x="176" y="176" width="160" height="160" rx="32" fill="white"/></svg>'
         });
 
         // Настройка: включить/выключить кастомный фон
@@ -86,17 +98,13 @@
             component: GrindTweaks.component_name,
             param: {
                 name: 'grind_bg_file_selector',
-                type: 'static'
+                type: 'button'
             },
             field: {
                 name: 'Выбрать файл из системы',
                 description: 'Нажмите для выбора изображения с устройства'
             },
-            onRender: function (item) {
-                item.on('hover:enter', function () {
-                    selectImageFile();
-                });
-            }
+            onChange: selectImageFile
         });
 
         // Настройка: режим отображения
@@ -181,213 +189,220 @@
             component: GrindTweaks.component_name,
             param: {
                 name: 'grind_bg_preview',
-                type: 'static'
+                type: 'button'
             },
             field: {
                 name: 'Предпросмотр',
                 description: 'Нажмите для просмотра результата'
             },
-            onRender: function (item) {
-                item.on('hover:enter', function () {
-                    previewBackground();
-                });
-            }
+            onChange: previewBackground
         });
 
         // Применяем фон при старте, если включено
         if (Lampa.Storage.field('grind_custom_bg_enabled')) {
-            applyCustomBackground();
+            setTimeout(applyCustomBackground, 1000);
         }
 
-        console.log('[Grind Tweaks]', 'Плагин инициализирован, версия:', GrindTweaks.version);
+        console.log('[Grind Tweaks] Плагин инициализирован, версия:', GrindTweaks.version);
     }
 
     // Функция выбора файла из системы
     function selectImageFile() {
-        var input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*';
-        
-        input.onchange = function (e) {
-            var file = e.target.files[0];
-            if (!file) return;
+        try {
+            var input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            
+            input.onchange = function (e) {
+                var file = e.target.files[0];
+                if (!file) return;
 
-            var reader = new FileReader();
-            reader.onload = function (event) {
-                var dataUrl = event.target.result;
-                Lampa.Storage.set('grind_bg_file_data', dataUrl);
-                Lampa.Noty.show('Изображение загружено');
-                
-                if (Lampa.Storage.field('grind_custom_bg_enabled')) {
-                    applyCustomBackground();
-                }
+                var reader = new FileReader();
+                reader.onload = function (event) {
+                    var dataUrl = event.target.result;
+                    Lampa.Storage.set('grind_bg_file_data', dataUrl);
+                    Lampa.Noty.show('Изображение загружено');
+                    
+                    if (Lampa.Storage.field('grind_custom_bg_enabled')) {
+                        applyCustomBackground();
+                    }
+                };
+                reader.readAsDataURL(file);
             };
-            reader.readAsDataURL(file);
-        };
-        
-        input.click();
+            
+            input.click();
+        } catch (e) {
+            console.error('[Grind Tweaks] Ошибка выбора файла:', e);
+            Lampa.Noty.show('Ошибка выбора файла');
+        }
     }
 
     // Функция применения кастомного фона
     function applyCustomBackground() {
-        var sourceType = Lampa.Storage.field('grind_bg_source_type');
-        var imageUrl = '';
+        try {
+            var sourceType = Lampa.Storage.field('grind_bg_source_type') || 'url';
+            var imageUrl = '';
 
-        if (sourceType === 'url') {
-            imageUrl = Lampa.Storage.field('grind_bg_url');
-            if (!imageUrl) {
-                Lampa.Noty.show('Укажите URL изображения в настройках');
-                return;
+            if (sourceType === 'url') {
+                imageUrl = Lampa.Storage.field('grind_bg_url') || '';
+                if (!imageUrl) {
+                    console.log('[Grind Tweaks] URL изображения не задан');
+                    return;
+                }
+            } else if (sourceType === 'file') {
+                imageUrl = Lampa.Storage.get('grind_bg_file_data', '');
+                if (!imageUrl) {
+                    console.log('[Grind Tweaks] Файл изображения не выбран');
+                    return;
+                }
             }
-        } else if (sourceType === 'file') {
-            imageUrl = Lampa.Storage.get('grind_bg_file_data', '');
-            if (!imageUrl) {
-                Lampa.Noty.show('Выберите файл изображения в настройках');
-                return;
-            }
-        }
 
-        var mode = Lampa.Storage.field('grind_bg_mode');
-        var overlay = Lampa.Storage.field('grind_bg_overlay');
-        var blur = Lampa.Storage.field('grind_bg_blur');
+            var mode = Lampa.Storage.field('grind_bg_mode') || 'cover';
+            var overlay = Lampa.Storage.field('grind_bg_overlay') || '0.4';
+            var blur = Lampa.Storage.field('grind_bg_blur') || '5';
 
-        // Создаем CSS для кастомного фона
-        var bgSize = 'cover';
-        var bgPosition = 'center';
-        var bgRepeat = 'no-repeat';
+            // Создаем CSS для кастомного фона
+            var bgSize = 'cover';
+            var bgPosition = 'center';
+            var bgRepeat = 'no-repeat';
 
-        switch (mode) {
-            case 'contain':
+            if (mode === 'contain') {
                 bgSize = 'contain';
-                break;
-            case 'stretch':
+            } else if (mode === 'stretch') {
                 bgSize = '100% 100%';
-                break;
-            case 'center':
+            } else if (mode === 'center') {
                 bgSize = 'auto';
                 bgPosition = 'center';
-                break;
+            }
+
+            var cssText = '<style id="grind-custom-bg-style">' +
+                '.background { background-image: url(\'' + imageUrl + '\') !important; ' +
+                'background-size: ' + bgSize + ' !important; ' +
+                'background-position: ' + bgPosition + ' !important; ' +
+                'background-repeat: ' + bgRepeat + ' !important; }' +
+                '.background > canvas { opacity: 0 !important; transition: opacity 0.3s ease !important; }' +
+                'body.grind-card-hovered .background > canvas { opacity: 1 !important; }' +
+                '.background::before { content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0; ' +
+                'background: rgba(0, 0, 0, ' + overlay + ') !important; pointer-events: none; z-index: 1; }' +
+                '.background::after { content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0; ' +
+                'backdrop-filter: blur(' + blur + 'px); -webkit-backdrop-filter: blur(' + blur + 'px); pointer-events: none; z-index: 2; }' +
+                'body.grind-card-hovered .background::before, ' +
+                'body.grind-card-hovered .background::after { opacity: 0 !important; }' +
+                '</style>';
+
+            $('#grind-custom-bg-style').remove();
+            $('head').append(cssText);
+
+            // Запускаем отслеживание
+            if (!window.grindTweaksWatcher) {
+                window.grindTweaksWatcher = true;
+                watchCardHover();
+            }
+
+            console.log('[Grind Tweaks] Кастомный фон применен');
+        } catch (e) {
+            console.error('[Grind Tweaks] Ошибка применения фона:', e);
         }
-
-        var css = `
-            <style id="grind-custom-bg-style">
-                .background:not(.background--loaded) {
-                    background-image: url('${imageUrl}') !important;
-                    background-size: ${bgSize} !important;
-                    background-position: ${bgPosition} !important;
-                    background-repeat: ${bgRepeat} !important;
-                    filter: blur(${blur}px) !important;
-                }
-                
-                .background:not(.background--loaded)::after {
-                    content: '' !important;
-                    position: absolute !important;
-                    top: 0 !important;
-                    left: 0 !important;
-                    right: 0 !important;
-                    bottom: 0 !important;
-                    background: rgba(0, 0, 0, ${overlay}) !important;
-                    pointer-events: none !important;
-                }
-                
-                .background.hide:not(.background--loaded) {
-                    display: block !important;
-                    opacity: 1 !important;
-                }
-                
-                .background__one,
-                .background__two,
-                .background__fade {
-                    display: block !important;
-                }
-                
-                body:not(.background--card-focused) .background canvas {
-                    opacity: 0 !important;
-                }
-            </style>
-        `;
-
-        $('#grind-custom-bg-style').remove();
-        $('head').append(css);
-
-        // Отслеживаем наведение на карточки
-        watchCardHover();
-
-        console.log('[Grind Tweaks]', 'Кастомный фон применен');
     }
 
     // Функция удаления кастомного фона
     function removeCustomBackground() {
         $('#grind-custom-bg-style').remove();
-        $('body').removeClass('background--card-focused');
-        console.log('[Grind Tweaks]', 'Кастомный фон удален');
+        $('body').removeClass('grind-card-hovered');
+        window.grindTweaksWatcher = false;
+        console.log('[Grind Tweaks] Кастомный фон удален');
     }
 
     // Отслеживание наведения на карточки
     function watchCardHover() {
-        var checkInterval = setInterval(function () {
-            if (!Lampa.Storage.field('grind_custom_bg_enabled')) {
-                clearInterval(checkInterval);
+        setInterval(function () {
+            if (!Lampa.Storage.field('grind_custom_bg_enabled') || !window.grindTweaksWatcher) {
                 return;
             }
 
             // Проверяем, есть ли карточки с фокусом
-            var hasHoveredCard = $('.card.focus, .card.hover').length > 0;
+            var hasHoveredCard = $('.card.focus').length > 0 || 
+                                 $('.card.hover').length > 0 || 
+                                 $('.card--focus').length > 0;
             
             if (hasHoveredCard) {
-                $('body').addClass('background--card-focused');
-                $('.background').addClass('background--loaded');
+                $('body').addClass('grind-card-hovered');
             } else {
-                $('body').removeClass('background--card-focused');
-                $('.background').removeClass('background--loaded');
+                $('body').removeClass('grind-card-hovered');
             }
         }, 100);
     }
 
     // Функция предпросмотра
     function previewBackground() {
-        var sourceType = Lampa.Storage.field('grind_bg_source_type');
-        var imageUrl = '';
+        try {
+            var sourceType = Lampa.Storage.field('grind_bg_source_type') || 'url';
+            var imageUrl = '';
 
-        if (sourceType === 'url') {
-            imageUrl = Lampa.Storage.field('grind_bg_url');
-        } else {
-            imageUrl = Lampa.Storage.get('grind_bg_file_data', '');
-        }
+            if (sourceType === 'url') {
+                imageUrl = Lampa.Storage.field('grind_bg_url') || '';
+            } else {
+                imageUrl = Lampa.Storage.get('grind_bg_file_data', '');
+            }
 
-        if (!imageUrl) {
-            Lampa.Noty.show('Изображение не задано');
-            return;
-        }
+            if (!imageUrl) {
+                Lampa.Noty.show('Изображение не задано');
+                return;
+            }
 
-        var modal = $('<div class="grind-preview-modal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 99999; display: flex; align-items: center; justify-content: center; flex-direction: column;"></div>');
-        
-        var img = $('<img style="max-width: 90%; max-height: 80%; object-fit: contain;">');
-        img.attr('src', imageUrl);
-        
-        var closeBtn = $('<div class="selector" style="margin-top: 2em; padding: 1em 2em; background: rgba(255,255,255,0.2); border-radius: 0.5em; cursor: pointer;">Закрыть (Enter)</div>');
-        
-        closeBtn.on('hover:enter click', function () {
-            modal.remove();
-            Lampa.Controller.toggle('settings_component');
-        });
-
-        modal.append(img);
-        modal.append(closeBtn);
-        $('body').append(modal);
-
-        Lampa.Controller.add('grind_preview', {
-            toggle: function () {
-                Lampa.Controller.collectionSet(modal);
-                Lampa.Controller.collectionFocus(closeBtn[0], modal);
-            },
-            back: function () {
+            var modal = $('<div class="grind-preview-modal"></div>').css({
+                'position': 'fixed',
+                'top': '0',
+                'left': '0',
+                'right': '0',
+                'bottom': '0',
+                'background': 'rgba(0,0,0,0.95)',
+                'z-index': '99999',
+                'display': 'flex',
+                'align-items': 'center',
+                'justify-content': 'center',
+                'flex-direction': 'column'
+            });
+            
+            var img = $('<img>').attr('src', imageUrl).css({
+                'max-width': '90%',
+                'max-height': '80%',
+                'object-fit': 'contain'
+            });
+            
+            var closeBtn = $('<div class="selector">Закрыть (Enter)</div>').css({
+                'margin-top': '2em',
+                'padding': '1em 2em',
+                'background': 'rgba(255,255,255,0.2)',
+                'border-radius': '0.5em',
+                'cursor': 'pointer'
+            });
+            
+            closeBtn.on('hover:enter click', function () {
                 modal.remove();
                 Lampa.Controller.toggle('settings_component');
-            }
-        });
+            });
 
-        Lampa.Controller.toggle('grind_preview');
+            modal.append(img);
+            modal.append(closeBtn);
+            $('body').append(modal);
+
+            Lampa.Controller.add('grind_preview', {
+                toggle: function () {
+                    Lampa.Controller.collectionSet(modal);
+                    Lampa.Controller.collectionFocus(closeBtn[0], modal);
+                },
+                back: function () {
+                    modal.remove();
+                    Lampa.Controller.toggle('settings_component');
+                }
+            });
+
+            Lampa.Controller.toggle('grind_preview');
+        } catch (e) {
+            console.error('[Grind Tweaks] Ошибка предпросмотра:', e);
+            Lampa.Noty.show('Ошибка предпросмотра');
+        }
     }
 
     // Ожидаем готовности Lampa
